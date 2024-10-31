@@ -1,0 +1,200 @@
+---
+title: "Tarea2"
+author: "Paulina Balcázar Vargas"
+date: "10-31-2024"
+format: html
+toc: true
+theme: minimal
+lang: es
+---
+
+### Objetivo
+Desarrollar de un sitio web que pueda dar visualizaciones de los conjuntos de datos de la tarea 1, programadas con los paquetes de tidyverse y plotly.
+
+## Carga de librerías
+```{r}
+#| label: carga-bibliotecas
+#| warning: false
+#| message: false
+
+#Cargar con la función library() las paqueterías 
+library(tidyverse)
+library(plotly)
+library(ggplot2)
+library(dplyr)
+library(DT)
+library(scales)
+library(ggthemes)
+```
+
+## Cargar los datos
+```{r}
+# Carga de datos
+#| label: carga_datos
+#| warning: false
+#| message: false
+
+# Carga de los datos de iris, trees y HairEyeColor
+data(iris)
+data(trees)
+data(HairEyeColor)
+```
+
+# Histogramas en ggplot con datos de *Iris*
+
+## Longitud de sépalos y pétalos de las flores del datas set "iris"
+En estos dos gráficos que se generaron se observa la distribución de la longitud de los sépalos y
+los pétalos en las flores de iris.
+En los pétalos la distribución es no normal, donde la mayoría de los datos están concentrados a
+la izquierda con tendencia a ser pequeños (entre 1 y 2 cm de longitud), después de esta concentración alta de datos vemos un rango entre 2 y 3 cm donde la presencia de datos es casi
+nula y posterior de 3 a 7 cm hay una distribución más normal de la longitud de los pétalos de
+estas flores.
+ 
+```{r}
+#| label: histpetal
+#| warning: false
+#| message: false
+
+#Histograma de lóngitud de pétalos por especie usando facet_grid
+
+petalhist <- iris |>
+  ggplot(aes(x = Petal.Length, fill = Species, text = paste0("Especie: ", Species, "<br>Longitud del Pétalo: ", Sepal.Length, " cm"))) + #<br> salta de renglón en las etiquetas
+  geom_histogram(binwidth = 0.3, color = "black", alpha = 0.5 ) + 
+  labs(
+    title = "Histograma de longitudes de pétalos por especie",
+       x = "Longitud del pétalo",
+       y = "Frecuencia"
+    ) +
+  facet_grid(~ Species) + # crea un panel por cada especie
+  theme_minimal()+ 
+  theme(plot.title = element_text(hjust = 0.5))  #ajusta el título al centro
+
+# Hacer gráfico interactivo con plotly
+ggplotly(petalhist, tooltip = "text") |>
+  config(locale = 'es')
+
+```
+
+En la Tarea 1, las longitudes tanto de los sépalos y los pétalos se calcularon sin hacer una distinción de la especie que se estaba graficando pero en esta ocasión cuando se grafican por especie se puede observar que la distibución es normal para cada especie en ambas partes de las flores. 
+
+```{r}
+#| label: histsepal
+
+#Histograma dividido por especie usando facet_grid
+sepalhist <- iris |>
+  ggplot(aes(x = Sepal.Length, fill = Species, text = paste0("Especie: ", Species, "<br>Longitud del Sépalo: ", Sepal.Length, " cm"))) + #<br> salta de renglón en las etiquetas
+  geom_histogram(binwidth = 0.3, color = "black", alpha = 0.5) + #alpha de transparencia al color de las barras
+  labs(
+    title = "Histograma de longitudes de los pépalos por especie",
+    x = "Longitud del sépalo",
+    y = "Frecuencia"
+  ) +
+  facet_grid(~ Species) +  
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+# Hacer gráfico interactivo con plotly
+ggplotly(sepalhist, tooltip = "text") |>
+  config(locale = 'es')
+```
+
+# Gráfica de pastel con datos de *Color de ojos y cabello*
+Se proyectas ahora la distribución de los colores de cabello del conjunto de datos en *HairEyeColor*, usando un gráfico de pie o pastel.
+
+Este ejercicio se corrigió, pues en la tarea 1 no sé graficaron datos que mostraban proporciones de variables categóricas. 
+
+```{r}
+#| label: piecabello
+# Convertimos la tabla en un data frame "HairEyeColor". Después ese data frame lo agrupamos por color de cabello y por último sumamos la frencuencia de cada grupo de color de cabello y la definimos como nueva frecuencia a graficar, que este caso es el color del cabello. 
+
+colorcabello <- data.frame(HairEyeColor) |>
+  group_by(Hair) |>
+  summarise(Freq = sum(Freq)) |>
+  mutate(Percentage = round(Freq / sum(Freq) * 100, 1))  # calcula el porcentaje y lo redondeamos
+
+#y ahora se tiene un data frame más chiquito que se llama "colorcabello"
+
+colorcabello
+
+# Posteriormente generamos un gráfico de pastel con este nuevo data frame
+ggplot(colorcabello, aes(x = "", y = Freq, fill = Hair)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y") +
+  labs(title = "Distribución de los colores de cabello") +
+  theme_void() +  # elimina los ejes del fondo
+  theme(plot.title = element_text(hjust = 0.5)) + # centra el título del gráfico
+  geom_text(aes(label = paste0(Percentage, "%")), 
+            position = position_stack(vjust = 0.5))  # agrega las etiquetas de porcentaje en el centro
+```
+
+# Gráfico de dispersión con datos de *Árboles*
+
+Esta gráfica fue hecha con el data frame “trees” y me gustó mucho pues es un despliegue sencillo donde se observa que a mayor anchura o diámetro tenga un árbol es tremendamente posible que aumente su volumen. Da una gráfica en la que se podría trazar una que representa la relación directamente proporcional de estas dos variables.
+ 
+```{r}
+#| label: dispersion
+# Crear el gráfico de dispersión interactivo
+disparboles <-
+  ggplot(data = trees, aes(x = Girth, y = Volume,
+  text = paste0("Ancho: ", Girth, " in<br>Volumen: ", Volume, " ft³")
+  ))  +
+  geom_point(color = "saddlebrown", fill = "greenyellow", shape = 21, size = 4) +
+  labs(
+    title = "Relación entre el volumen y la anchura del tronco de los árboles",
+    subtitle = "Fuente: Meyer, H. A. (1953) Forest Mensuration. Penns Valley Publishers, Inc.",
+    x = "Ancho del árbol (in)",
+    y = "Volumen del árbol (ft³)"
+  ) + 
+  theme(plot.title = element_text(hjust = 0.8)) +
+  theme_minimal()
+
+ggplotly(disparboles, tooltip = "text") |>
+  config(locale = 'es')
+
+```
+
+# Gráfico de barras con datos de *Árboles*
+Este último gráfico nos da información acerca del número de árboles que tienen la misma altura.
+Se orbserva que la mayoría de los árboles son únicos en altura con algunas excepciones al centro de la distribución de los datos, donde es más probable encontrar más árboles con la misma altura.
+
+```{r}
+#| label: barrasaltura
+
+barraltura_arboles <-
+  trees |>
+  count(Height) |>  # Creamos un nuevo df con las alturas (Height) y las frecuencias (n)
+  rename(Frequency = n) |>  # Renombramos la columna "n" a "Frequency"
+  ggplot(aes(
+    x = Height,
+    y = Frequency,
+    text = paste0("Altura: ", Height, " m<br>Frecuencia: ", Frequency, " árboles")
+  )) +
+  geom_bar(stat = "identity", fill = "tomato2", color = "orangered4") +
+  labs(
+    title = "Frecuencia de Alturas de los Árboles",
+    x = "Altura del Árbol",
+    y = "Frecuencia"
+  ) +
+  theme_minimal()
+# Gráfico plotly
+ggplotly(barraltura_arboles, tooltip = "text") |> 
+  config(locale = 'es') # para mostrar los controles en español
+
+```
+
+
+
+
+# Referencias de los data sets
+
+### Árboles (Trees) 
+- Atkinson, A. C. (1985) Plots, Transformations and Regression. Oxford University Press.
+
+### Color de ojos y cabello (HairEyeColor)
+
+- Snee (1974) gives the two-way table aggregated over Sex. The Sex split of the ‘Brown hair, Brown eye’ cell was changed to agree with that used by Friendly (2000).
+
+### Iris 
+
+- Meyer, H. A. (1953) Forest Mensuration. Penns Valley Publishers, Inc.
+
